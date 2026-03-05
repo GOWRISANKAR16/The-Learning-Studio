@@ -40,5 +40,4 @@ Copy `frontend/.env.example` to `frontend/.env`.
 
 - `npm run build` produces `frontend/dist/`. Serve with any static host (Vercel, Netlify, etc.).
 - Ensure the backend allows your frontend origin in CORS.
-=======
-
+  
