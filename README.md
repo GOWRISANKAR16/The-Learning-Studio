@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Learning Management System (LMS)
 
 A production-ready LMS SaaS frontend (React + Vite + Tailwind) that connects to the LMS backend API.
@@ -41,6 +41,4 @@ Copy `frontend/.env.example` to `frontend/.env`.
 - `npm run build` produces `frontend/dist/`. Serve with any static host (Vercel, Netlify, etc.).
 - Ensure the backend allows your frontend origin in CORS.
 =======
-# The-Learning-Studio-
-A modern, LinkedIn Learning–style LMS for browsing courses, watching lessons, tracking progress, and managing student assignments.
->>>>>>> f77cdce8487f647615a5293bb0339c5098388423
+
