@@ -90,7 +90,9 @@ Other keys the frontend also accepts: `message`, `response`, `text`, `result`, `
 
 Use this Space from the **server only** (never from the browser):
 
-- **Space URL:** `https://gowrisankara-qwen-qwen2-5-coder-32b-instruct.hf.space`
+- **Model / Space:** `gowrisankara/Qwen-Qwen2.5-Coder-32B-Instruct`
+- **Space page (human link):** `https://huggingface.co/spaces/gowrisankara/Qwen-Qwen2.5-Coder-32B-Instruct`
+- **Gradio app base (API calls use this):** `https://gowrisankara-qwen-qwen2-5-coder-32b-instruct.hf.space`
 
 **Step 1 – Get event_id**
 
@@ -117,7 +119,7 @@ Use this Space from the **server only** (never from the browser):
 - Respond with **200** and body `{ "reply": "<parsed reply text>" }` (or `{ "content": "..." }`).
 - If the Space returns 500 or timeout, respond with **502** and `{ "error": { "message": "AI service temporarily unavailable" } }`.
 
-**Optional:** Get a Hugging Face token from https://huggingface.co/settings/tokens and set it in your server env as `HF_TOKEN`; use it in the requests above if the Space requires it.
+**Optional:** Get a Hugging Face token from https://huggingface.co/settings/tokens and set it in your server env as `HF_TOKEN`; use it in the requests above if the Space requires it. The model used is **gowrisankara/Qwen-Qwen2.5-Coder-32B-Instruct** (Qwen 2.5 Coder 32B).
 
 ### Option B – Use another AI API
 
