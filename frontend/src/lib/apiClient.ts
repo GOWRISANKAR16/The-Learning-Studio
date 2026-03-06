@@ -127,7 +127,9 @@ async function apiRequest<T>({
       (data as { message?: string } | null)?.message
 
     if (response.status >= 400 && response.status < 500 && rawMessage) {
-      // Safe, user-facing error from backend (e.g. invalid credentials).
+      throw new Error(rawMessage)
+    }
+    if (rawMessage && typeof rawMessage === 'string') {
       throw new Error(rawMessage)
     }
 

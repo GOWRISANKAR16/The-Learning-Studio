@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getChatReply } from '../../lib/apiClient'
 
 export type ChatMessage = {
@@ -14,6 +15,7 @@ type ChatPanelProps = {
 }
 
 export function ChatPanel({ userName, onClose }: ChatPanelProps) {
+  const navigate = useNavigate()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -60,7 +62,16 @@ export function ChatPanel({ userName, onClose }: ChatPanelProps) {
       }
       setMessages((prev) => [...prev, assistantMsg])
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Sorry, I couldn’t reach the assistant right now. Please try again.'
+      const raw = err instanceof Error ? err.message : 'Sorry, I couldn’t reach the assistant right now. Please try again.'
+      if (raw === 'Your session has expired. Please sign in again.') {
+        onClose()
+        navigate('/login')
+        return
+      }
+      const isUnavailable = raw.includes('temporarily unavailable') || raw.includes('Service temporarily unavailable')
+      const message = isUnavailable
+        ? 'AI assistant isn’t available right now. Please sign in and try again, or try again later once the backend chat (POST /chat) is enabled.'
+        : raw
       setMessages((prev) => [
         ...prev,
         {
@@ -128,6 +139,9 @@ export function ChatPanel({ userName, onClose }: ChatPanelProps) {
             </h2>
             <p className="mt-2 text-sm text-slate-500">
               Hey buddy! Need any assistance or up for a chat?
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Sign in and ensure the backend supports POST /chat.
             </p>
           </div>
         ) : (
@@ -201,10 +215,6 @@ export function ChatPanel({ userName, onClose }: ChatPanelProps) {
   )
 }
 
-const HF_SPACE_BASE = 'https://gowrisankara-qwen-qwen2-5-coder-32b-instruct.hf.space'
-
-const API_PREFIXES = ['', '/gradio_api']
-
 async function sendToAssistant(
   userMessage: string,
   previousMessages: ChatMessage[],
@@ -213,101 +223,5 @@ async function sendToAssistant(
     role: m.role,
     content: m.content,
   }))
-
-  let backendError: Error | null = null
-  try {
-    return await getChatReply(userMessage, history)
-  } catch (err) {
-    backendError = err as Error
-  }
-
-  const hfResult = await sendToAssistantHF(userMessage)
-  const isHfError =
-    hfResult.includes('temporarily unavailable') || hfResult.includes('having trouble')
-  if (isHfError && backendError) throw backendError
-  return hfResult
-}
-
-async function sendToAssistantHF(userMessage: string): Promise<string> {
-  const endpointsToTry = ['chat', 'predict']
-  let lastServerError = false
-  for (const prefix of API_PREFIXES) {
-    const base = `${HF_SPACE_BASE}${prefix}`
-    for (const apiName of endpointsToTry) {
-      for (const chatWithHistory of apiName === 'chat' ? [false, true] : [false]) {
-        try {
-          const payload =
-            apiName === 'chat' && chatWithHistory
-              ? { data: [userMessage, []] }
-              : { data: [userMessage] }
-          const postRes = await fetch(`${base}/call/${apiName}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          })
-          if (!postRes.ok) {
-            if (postRes.status >= 500) lastServerError = true
-            continue
-          }
-          let postData: { event_id?: string }
-          try {
-            postData = await postRes.json()
-          } catch {
-            continue
-          }
-          const eventId = postData?.event_id
-          if (!eventId || typeof eventId !== 'string') continue
-
-          const result = await pollForResult(base, apiName, eventId)
-          return result
-        } catch {
-          continue
-        }
-      }
-    }
-  }
-  if (lastServerError) {
-    return 'The assistant service is having trouble right now. Please try again in a moment.'
-  }
-  return 'The AI assistant is temporarily unavailable. Try again later.'
-}
-
-async function pollForResult(baseUrl: string, apiName: string, eventId: string): Promise<string> {
-  const maxAttempts = 60
-  const intervalMs = 1500
-  for (let i = 0; i < maxAttempts; i++) {
-    try {
-      const res = await fetch(`${baseUrl}/call/${apiName}/${eventId}`, {
-        headers: { Accept: 'text/event-stream' },
-      })
-      if (!res.ok) continue
-      const text = await res.text()
-      const extracted = extractResultFromResponse(text)
-      if (extracted) return extracted
-    } catch {
-      // ignore
-    }
-    await new Promise((r) => setTimeout(r, intervalMs))
-  }
-  throw new Error('Timeout')
-}
-
-function extractResultFromResponse(text: string): string | null {
-  const dataLine = text.split('\n').find((line) => line.startsWith('data:'))
-  if (!dataLine) return null
-  const jsonStr = dataLine.replace(/^data:\s*/, '').trim()
-  if (!jsonStr) return null
-  try {
-    const parsed = JSON.parse(jsonStr) as unknown
-    const arr = Array.isArray(parsed) ? parsed : [parsed]
-    const last = arr.length > 0 ? arr[arr.length - 1] : null
-    if (typeof last === 'string') return last
-    if (last && typeof last === 'object' && last !== null && 'content' in last && typeof (last as { content: unknown }).content === 'string') {
-      return (last as { content: string }).content
-    }
-    if (arr.length > 0 && typeof arr[0] === 'string') return arr[0] as string
-  } catch {
-    // ignore
-  }
-  return null
+  return getChatReply(userMessage, history)
 }
