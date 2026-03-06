@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { ChatPanel } from '../chat/ChatPanel'
 import { useAuthStore } from '../../store/authStore'
 
 type AppShellProps = {
@@ -11,6 +12,7 @@ export function AppShell({ children }: AppShellProps) {
   const auth = useAuthStore()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
 
   // Always force light theme by clearing any previous dark class
   useEffect(() => {
@@ -97,6 +99,17 @@ export function AppShell({ children }: AppShellProps) {
           </div>
 
           <div className="ml-auto flex items-center gap-3 text-xs md:text-sm">
+            <button
+              type="button"
+              onClick={() => setChatOpen((open) => !open)}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              title="AI Assistant"
+              aria-label="Open AI Assistant"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </button>
             <div className="relative">
               <button
                 type="button"
@@ -135,6 +148,24 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </nav>
       </header>
+
+      {/* AI Chatbot – full page, Learning Studio theme */}
+      {chatOpen && (
+        <>
+          <button
+            type="button"
+            onClick={() => setChatOpen(false)}
+            className="fixed inset-0 z-30 bg-slate-900/30"
+            aria-label="Close AI Assistant"
+          />
+          <div className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-white shadow-2xl">
+            <ChatPanel
+              userName={auth.user?.name ?? 'Guest'}
+              onClose={() => setChatOpen(false)}
+            />
+          </div>
+        </>
+      )}
 
       <main className="flex-1">
         <div className="mx-auto max-w-6xl px-4 py-6 md:py-8">{children}</div>

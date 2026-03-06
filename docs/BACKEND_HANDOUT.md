@@ -321,7 +321,29 @@ All admin routes must be protected with **roleMiddleware('admin')** (or equivale
 
 ---
 
-## 12. Checklist for Backend Team
+## 13. AI Chatbot (Learning Studio in-app assistant)
+
+The frontend has an **AI Assistant** chat panel. To support it from your backend (recommended: avoids CORS and keeps HF token on server), implement:
+
+**POST `/chat`**
+
+- **Auth:** Required (same JWT as other routes).
+- **Request body:**
+  ```json
+  { "message": "user message text", "history": [] }
+  ```
+- **Success (200):**
+  ```json
+  { "reply": "AI reply text" }
+  ```
+  or `{ "content": "AI reply text" }`.
+- **Errors:** 401 (unauthorized), 400 (validation), 502/503 (AI service down), 500 (generic), with JSON `error.message` or `message`.
+
+The backend should call the Hugging Face Space (or another AI API) **server-side** and return the reply. See **BACKEND_CHATBOT_PROMPT.md** for the full implementation prompt (HF proxy steps, payloads, checklist).
+
+---
+
+## 14. Checklist for Backend Team
 
 - [ ] CORS allows frontend origin(s) and `credentials: true`.
 - [ ] POST `/auth/register` and POST `/auth/login` accept the body shapes above and return `{ token, user }` on success.
@@ -333,5 +355,6 @@ All admin routes must be protected with **roleMiddleware('admin')** (or equivale
 - [ ] GET `/health` returns `{ status: "ok" }`.
 - [ ] All errors return JSON with `error.message` or `message`.
 - [ ] Database connection uses SSL if required and has a connection timeout and small pool to avoid pool timeout errors.
+- [ ] **(Optional)** POST `/chat` for AI Assistant: auth required, body `{ message, history }`, response `{ reply }` or `{ content }`. See **BACKEND_CHATBOT_PROMPT.md**.
 
 Use **FRONTEND_BLUEPRINT.md** for frontend-only reference (routes, data shapes, no backend logic).

@@ -381,6 +381,58 @@ export async function getCourseProgressSummary(courseId: string): Promise<{
   return { totalLessons, completedLessons, percentComplete }
 }
 
+/**
+ * Send a message to the backend AI chat endpoint. Use this when the backend implements POST /chat.
+ * Tries /chat then /api/chat. Accepts multiple response shapes (reply, content, message, response, text).
+ * Throws on 4xx/5xx or when the backend is not available (caller can fall back to direct HF or show error).
+ */
+export async function getChatReply(
+  message: string,
+  history: Array<{ role: string; content: string }> = [],
+): Promise<string> {
+  const body = { message, history }
+  const pathsToTry = ['/chat', '/api/chat'] as const
+  let lastError: Error | null = null
+
+  for (const path of pathsToTry) {
+    try {
+      const data = await apiRequest<Record<string, unknown>>({
+        method: 'POST',
+        path,
+        body,
+        auth: true,
+      })
+      const text = extractReplyFromResponse(data)
+      if (text) return text
+      lastError = new Error('Invalid chat response')
+    } catch (err) {
+      lastError = err as Error
+      continue
+    }
+  }
+
+  throw lastError ?? new Error('Invalid chat response')
+}
+
+function extractReplyFromResponse(data: Record<string, unknown> | null | undefined): string | null {
+  if (!data || typeof data !== 'object') return null
+  const keys = ['reply', 'content', 'message', 'response', 'text', 'result', 'output']
+  for (const k of keys) {
+    const v = data[k]
+    if (typeof v === 'string' && v.trim()) return v.trim()
+  }
+  const inner = data.data as Record<string, unknown> | undefined
+  if (inner && typeof inner === 'object') {
+    for (const k of keys) {
+      const v = inner[k]
+      if (typeof v === 'string' && v.trim()) return v.trim()
+    }
+    const str = typeof inner === 'string' ? inner : null
+    if (str && str.trim()) return str.trim()
+  }
+  return null
+}
+
 /** Backend course/lesson shapes (current backend – no /api prefix) */
 interface BackendLesson {
   id?: string
