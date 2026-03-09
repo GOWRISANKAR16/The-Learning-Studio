@@ -3,24 +3,32 @@ import { persist } from 'zustand/middleware'
 
 export type AssignmentStatus = 'pending' | 'submitted' | 'graded'
 
+export interface MCQQuestion {
+  id: string
+  text: string
+  options: string[]
+  correctIndex: number
+  marks: number
+}
+
 export interface Assignment {
   id: string
   courseId: string
   title: string
   deadline: string
   description: string
-  /** Assignment questions (prompts) for the student to answer */
-  questions?: string[]
+  /** MCQ questions for the quiz */
+  questions: MCQQuestion[]
 }
 
 export interface Submission {
   assignmentId: string
   userId: string
   submittedAt: string
-  content: string
   status: AssignmentStatus
-  grade?: string
-  feedback?: string
+  answers: { questionId: string; selectedIndex: number }[]
+  score: number
+  maxScore: number
 }
 
 interface AssignmentsState {
@@ -29,10 +37,12 @@ interface AssignmentsState {
   setAssignments: (assignments: Assignment[]) => void
   getAssignmentsForUser: (userId: string) => Assignment[]
   getSubmission: (assignmentId: string, userId: string) => Submission | undefined
-  submitAssignment: (args: {
+  saveMcqSubmission: (args: {
     assignmentId: string
     userId: string
-    content: string
+    answers: { questionId: string; selectedIndex: number }[]
+    score: number
+    maxScore: number
   }) => void
 }
 
@@ -47,9 +57,27 @@ export const useAssignmentsStore = create<AssignmentsState>()(
           deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           description: 'Short quiz on variables, types, and control flow in Java.',
           questions: [
-            'What is the difference between int and Integer in Java?',
-            'Write a for-loop that prints numbers 1 to 10.',
-            'What are the three parts of a typical for-loop?',
+            {
+              id: 'java-q1',
+              text: 'Which keyword is used to define a class in Java?',
+              options: ['class', 'struct', 'object', 'def'],
+              correctIndex: 0,
+              marks: 1,
+            },
+            {
+              id: 'java-q2',
+              text: 'What is the default value of an uninitialised int field in a class?',
+              options: ['0', 'null', 'undefined', '1'],
+              correctIndex: 0,
+              marks: 1,
+            },
+            {
+              id: 'java-q3',
+              text: 'Which loop will execute at least once?',
+              options: ['for', 'while', 'do-while', 'enhanced for'],
+              correctIndex: 2,
+              marks: 1,
+            },
           ],
         },
         {
@@ -59,9 +87,32 @@ export const useAssignmentsStore = create<AssignmentsState>()(
           deadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
           description: 'Build a small CLI app that manipulates data from a file.',
           questions: [
-            'Describe the steps to read a text file line by line in Python.',
-            'How would you handle a missing file (FileNotFoundError)?',
-            'Submit the link to your GitHub repo or paste the main script code.',
+            {
+              id: 'python-q1',
+              text: 'Which keyword is used to define a function in Python?',
+              options: ['func', 'def', 'function', 'lambda'],
+              correctIndex: 1,
+              marks: 1,
+            },
+            {
+              id: 'python-q2',
+              text: 'Which data structure is an ordered, mutable collection?',
+              options: ['tuple', 'set', 'list', 'dict'],
+              correctIndex: 2,
+              marks: 1,
+            },
+            {
+              id: 'python-q3',
+              text: 'Which exception is raised when a file is not found?',
+              options: [
+                'IOError',
+                'FileNotFoundError',
+                'ValueError',
+                'KeyError',
+              ],
+              correctIndex: 1,
+              marks: 1,
+            },
           ],
         },
         {
@@ -71,8 +122,32 @@ export const useAssignmentsStore = create<AssignmentsState>()(
           deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
           description: 'Practice useState and useEffect with a simple component.',
           questions: [
-            'When would you use useEffect with an empty dependency array?',
-            'Create a small component that fetches and displays a list. Paste the code or link.',
+            {
+              id: 'react-q1',
+              text: 'Which hook is used to add state to a function component?',
+              options: ['useState', 'useEffect', 'useContext', 'useRef'],
+              correctIndex: 0,
+              marks: 1,
+            },
+            {
+              id: 'react-q2',
+              text: 'When is an effect with an empty dependency array [] run?',
+              options: [
+                'On every render',
+                'Only once after initial render',
+                'Only on unmount',
+                'Never',
+              ],
+              correctIndex: 1,
+              marks: 1,
+            },
+            {
+              id: 'react-q3',
+              text: 'Which hook is best for persisting a mutable value across renders without causing re-renders?',
+              options: ['useState', 'useEffect', 'useRef', 'useMemo'],
+              correctIndex: 2,
+              marks: 1,
+            },
           ],
         },
       ],
@@ -88,7 +163,7 @@ export const useAssignmentsStore = create<AssignmentsState>()(
           (s) => s.assignmentId === assignmentId && s.userId === userId,
         )
       },
-      submitAssignment({ assignmentId, userId, content }) {
+      saveMcqSubmission({ assignmentId, userId, answers, score, maxScore }) {
         const existing = get().submissions.filter(
           (s) => !(s.assignmentId === assignmentId && s.userId === userId),
         )
@@ -96,8 +171,10 @@ export const useAssignmentsStore = create<AssignmentsState>()(
           assignmentId,
           userId,
           submittedAt: new Date().toISOString(),
-          content: content.trim(),
-          status: 'submitted',
+          status: 'graded',
+          answers,
+          score,
+          maxScore,
         }
         set({ submissions: [...existing, submission] })
       },

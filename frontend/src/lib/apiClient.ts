@@ -1,6 +1,7 @@
 import { courses, getCourseById, type Course, type CourseCategory, type Difficulty, type Lesson, type Section } from '../data/courses'
 import { useAuthStore } from '../store/authStore'
 import { useProgressStore } from '../store/progressStore'
+import { useAssignmentsStore } from '../store/assignmentsStore'
 import { API_BASE_URL, USE_MOCK } from './config'
 
 type ApiRequestOptions = {
@@ -19,6 +20,82 @@ type RefreshResponse = {
     email: string
     role: 'student' | 'admin' | 'instructor'
   }
+}
+
+export interface MCQAnswerPayload {
+  questionId: string
+  selectedIndex: number
+}
+
+export async function getCourseAssignments(courseId: string) {
+  if (USE_MOCK) {
+    const state = useAssignmentsStore.getState()
+    return state.assignments.filter((a) => a.courseId === courseId)
+  }
+
+  return apiRequest<{
+    assignments: Array<{
+      id: string
+      courseId: string
+      title: string
+      description: string
+      deadline: string
+      questions: {
+        id: string
+        text: string
+        options: string[]
+        correctIndex: number
+        marks: number
+      }[]
+    }>
+  }>({
+    path: `/courses/${encodeURIComponent(courseId)}/assignments`,
+    auth: true,
+  }).then((res) => res.assignments)
+}
+
+export async function submitAssignmentAnswers(args: {
+  assignmentId: string
+  userId: string
+  answers: MCQAnswerPayload[]
+}) {
+  const { assignmentId, userId, answers } = args
+
+  if (USE_MOCK) {
+    const store = useAssignmentsStore.getState()
+    const assignment = store.assignments.find((a) => a.id === assignmentId)
+    if (!assignment) {
+      throw new Error('Assignment not found')
+    }
+    const maxScore = assignment.questions.reduce(
+      (sum, q) => sum + q.marks,
+      0,
+    )
+    const score = assignment.questions.reduce((sum, q) => {
+      const userAnswer = answers.find((a) => a.questionId === q.id)
+      if (userAnswer && userAnswer.selectedIndex === q.correctIndex) {
+        return sum + q.marks
+      }
+      return sum
+    }, 0)
+
+    store.saveMcqSubmission({
+      assignmentId,
+      userId,
+      answers,
+      score,
+      maxScore,
+    })
+
+    return { score, maxScore }
+  }
+
+  return apiRequest<{ score: number; maxScore: number }>({
+    path: `/assignments/${encodeURIComponent(assignmentId)}/submissions`,
+    method: 'POST',
+    auth: true,
+    body: { userId, answers },
+  })
 }
 
 async function refreshAccessToken(): Promise<boolean> {

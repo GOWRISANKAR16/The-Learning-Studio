@@ -37,6 +37,24 @@ export interface Course {
   thumbnailUrl: string
   totalMinutes?: number
   sections: Section[]
+  /** Optional price from API; when missing, a stable display price is derived from course id */
+  price?: number
+}
+
+/** Stable display price for a course. Uses course.price when set, otherwise derived from course id. Value is in INR (rupees). */
+export function getCourseDisplayPrice(course: Course): number {
+  if (course.price != null && course.price >= 0) return course.price
+  let hash = 0
+  for (let i = 0; i < course.id.length; i += 1) {
+    hash = (hash + course.id.charCodeAt(i)) % 1000
+  }
+  const pricesInr = [499, 799, 999, 1299, 1499]
+  return pricesInr[hash % pricesInr.length]
+}
+
+/** Format price in Indian Rupees for display. */
+export function formatPriceInr(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN')}`
 }
 
 function getYoutubeId(youtubeUrl: string): string {
@@ -52,7 +70,7 @@ function getYoutubeId(youtubeUrl: string): string {
   }
 }
 
-// Helper to create a simple single-section course from a YouTube URL.
+// Helper to create a multi-section course from a single YouTube URL.
 function singleLessonCourse(args: {
   id: string
   title: string
@@ -69,6 +87,22 @@ function singleLessonCourse(args: {
     : 'https://img.youtube.com/vi/00000000000/maxresdefault.jpg'
   const thumbnailUrl = args.thumbnailUrl ?? autoThumbnail
 
+  const baseTitle =
+    title.replace(/full course|course|crash course/gi, '').trim() || title
+
+  const makeLesson = (
+    lessonId: string,
+    lessonTitle: string,
+    order: number,
+    durationMinutes: number,
+  ) => ({
+    id: lessonId,
+    title: lessonTitle,
+    order,
+    youtubeUrl,
+    durationMinutes,
+  })
+
   return {
     id,
     title,
@@ -80,16 +114,103 @@ function singleLessonCourse(args: {
     thumbnailUrl,
     sections: [
       {
-        id: `${id}-s1`,
-        title: 'Main course',
+        id: `${id}-intro`,
+        title: 'Course introduction',
         order: 1,
         lessons: [
-          {
-            id: `${id}-l1`,
-            title,
-            order: 1,
-            youtubeUrl,
-          },
+          makeLesson(
+            `${id}-welcome`,
+            `Welcome to the ${baseTitle || title} course`,
+            1,
+            3,
+          ),
+          makeLesson(
+            `${id}-setup`,
+            'Setting up your tools and environment',
+            2,
+            12,
+          ),
+          makeLesson(
+            `${id}-first-steps`,
+            `First steps with ${baseTitle || title}`,
+            3,
+            10,
+          ),
+        ],
+      },
+      {
+        id: `${id}-fundamentals`,
+        title: `${baseTitle || title} fundamentals`,
+        order: 2,
+        lessons: [
+          makeLesson(
+            `${id}-basics-1`,
+            'Core concepts and basic syntax',
+            1,
+            18,
+          ),
+          makeLesson(
+            `${id}-basics-2`,
+            'Working with data and structures',
+            2,
+            20,
+          ),
+          makeLesson(
+            `${id}-basics-3`,
+            'Control flow and decision making',
+            3,
+            19,
+          ),
+        ],
+      },
+      {
+        id: `${id}-advanced`,
+        title: 'Intermediate and advanced topics',
+        order: 3,
+        lessons: [
+          makeLesson(
+            `${id}-advanced-1`,
+            'Intermediate patterns and best practices',
+            1,
+            21,
+          ),
+          makeLesson(
+            `${id}-advanced-2`,
+            'Error handling and troubleshooting',
+            2,
+            17,
+          ),
+          makeLesson(
+            `${id}-advanced-3`,
+            'Performance and optimisation tips',
+            3,
+            16,
+          ),
+        ],
+      },
+      {
+        id: `${id}-project`,
+        title: 'Project and next steps',
+        order: 4,
+        lessons: [
+          makeLesson(
+            `${id}-project-plan`,
+            'Planning the final project',
+            1,
+            14,
+          ),
+          makeLesson(
+            `${id}-project-build`,
+            'Building the project step by step',
+            2,
+            28,
+          ),
+          makeLesson(
+            `${id}-project-wrap`,
+            'Wrap-up and where to go next',
+            3,
+            9,
+          ),
         ],
       },
     ],
@@ -98,14 +219,131 @@ function singleLessonCourse(args: {
 
 export const courses: Course[] = [
   // Programming
-  singleLessonCourse({
+  {
     id: 'java-full-course',
     title: 'Java Full Course',
+    slug: 'java-full-course',
     category: 'Programming',
     difficulty: 'Beginner',
+    description:
+      'Learn Java from zero to hero. Cover the Java language, OOP, collections, and real-world projects.',
     instructor: 'Online Instructor',
-    youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
-  }),
+    thumbnailUrl: 'https://img.youtube.com/vi/BGTx91t8q50/maxresdefault.jpg',
+    sections: [
+      {
+        id: 'java-intro',
+        title: 'Course introduction',
+        order: 1,
+        lessons: [
+          {
+            id: 'java-welcome',
+            title: 'Welcome to the Java bootcamp',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 3,
+          },
+          {
+            id: 'java-setup',
+            title: 'Installing JDK and IntelliJ IDEA',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 12,
+          },
+          {
+            id: 'java-first-program',
+            title: 'Your first Java program: Hello World',
+            order: 3,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 10,
+          },
+        ],
+      },
+      {
+        id: 'java-basics',
+        title: 'Java fundamentals',
+        order: 2,
+        lessons: [
+          {
+            id: 'java-variables',
+            title: 'Variables, types and operators',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 18,
+          },
+          {
+            id: 'java-control-flow',
+            title: 'Control flow: if, switch, loops',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 22,
+          },
+          {
+            id: 'java-methods',
+            title: 'Methods and parameter passing',
+            order: 3,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 17,
+          },
+        ],
+      },
+      {
+        id: 'java-oop',
+        title: 'Object‑oriented Java',
+        order: 3,
+        lessons: [
+          {
+            id: 'java-classes-objects',
+            title: 'Classes, objects and constructors',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 24,
+          },
+          {
+            id: 'java-inheritance',
+            title: 'Inheritance and polymorphism',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 26,
+          },
+          {
+            id: 'java-interfaces',
+            title: 'Interfaces and abstract classes',
+            order: 3,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 20,
+          },
+        ],
+      },
+      {
+        id: 'java-advanced',
+        title: 'Advanced topics & project',
+        order: 4,
+        lessons: [
+          {
+            id: 'java-collections',
+            title: 'Collections framework: List, Set, Map',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 28,
+          },
+          {
+            id: 'java-exceptions',
+            title: 'Exceptions and error handling',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 18,
+          },
+          {
+            id: 'java-mini-project',
+            title: 'Mini project: Student management console app',
+            order: 3,
+            youtubeUrl: 'https://www.youtube.com/watch?v=BGTx91t8q50',
+            durationMinutes: 35,
+          },
+        ],
+      },
+    ],
+  },
   singleLessonCourse({
     id: 'javascript-full-course',
     title: 'JavaScript Full Course',
@@ -114,14 +352,117 @@ export const courses: Course[] = [
     instructor: 'Online Instructor',
     youtubeUrl: 'https://www.youtube.com/watch?v=PkZNo7MFNFg',
   }),
-  singleLessonCourse({
+  {
     id: 'python-full-course',
     title: 'Python Full Course',
+    slug: 'python-full-course',
     category: 'Programming',
     difficulty: 'Beginner',
+    description:
+      'Learn Python step by step: syntax, data structures, functions, OOP and real‑world projects.',
     instructor: 'Online Instructor',
-    youtubeUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
-  }),
+    thumbnailUrl: 'https://img.youtube.com/vi/_uQrJ0TkZlc/maxresdefault.jpg',
+    sections: [
+      {
+        id: 'python-intro',
+        title: 'Getting started with Python',
+        order: 1,
+        lessons: [
+          {
+            id: 'python-welcome',
+            title: 'Welcome and course structure',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+            durationMinutes: 4,
+          },
+          {
+            id: 'python-install',
+            title: 'Installing Python and VS Code',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+            durationMinutes: 14,
+          },
+        ],
+      },
+      {
+        id: 'python-basics',
+        title: 'Python basics',
+        order: 2,
+        lessons: [
+          {
+            id: 'python-syntax',
+            title: 'Syntax, variables and numbers',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+            durationMinutes: 20,
+          },
+          {
+            id: 'python-strings',
+            title: 'Strings, lists and dictionaries',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+            durationMinutes: 24,
+          },
+          {
+            id: 'python-control-flow',
+            title: 'Conditionals and loops',
+            order: 3,
+            youtubeUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+            durationMinutes: 22,
+          },
+        ],
+      },
+      {
+        id: 'python-functions',
+        title: 'Functions and modules',
+        order: 3,
+        lessons: [
+          {
+            id: 'python-functions-def',
+            title: 'Defining and calling functions',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+            durationMinutes: 18,
+          },
+          {
+            id: 'python-args',
+            title: '*args, **kwargs and default arguments',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+            durationMinutes: 16,
+          },
+          {
+            id: 'python-modules',
+            title: 'Organising code into modules and packages',
+            order: 3,
+            youtubeUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+            durationMinutes: 15,
+          },
+        ],
+      },
+      {
+        id: 'python-project',
+        title: 'Final project: CLI app',
+        order: 4,
+        lessons: [
+          {
+            id: 'python-project-planning',
+            title: 'Planning the project',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+            durationMinutes: 10,
+          },
+          {
+            id: 'python-project-implementation',
+            title: 'Implementing the CLI application',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
+            durationMinutes: 30,
+          },
+        ],
+      },
+    ],
+  },
   singleLessonCourse({
     id: 'c-programming',
     title: 'C Programming Full Course',
@@ -204,14 +545,117 @@ export const courses: Course[] = [
     instructor: 'Web Instructor',
     youtubeUrl: 'https://www.youtube.com/watch?v=srvUrASNj0s',
   }),
-  singleLessonCourse({
+  {
     id: 'react-full-course',
     title: 'React JS Full Course',
+    slug: 'react-full-course',
     category: 'Web Development',
     difficulty: 'Intermediate',
+    description:
+      'Build modern React applications with components, hooks, state management and real‑world UI patterns.',
     instructor: 'React Instructor',
-    youtubeUrl: 'https://www.youtube.com/watch?v=bMknfKXIFA8',
-  }),
+    thumbnailUrl: 'https://img.youtube.com/vi/bMknfKXIFA8/maxresdefault.jpg',
+    sections: [
+      {
+        id: 'react-intro',
+        title: 'Introduction & setup',
+        order: 1,
+        lessons: [
+          {
+            id: 'react-welcome',
+            title: 'Welcome to the React course',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+            durationMinutes: 5,
+          },
+          {
+            id: 'react-tooling',
+            title: 'Tooling: Node, npm and Vite',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+            durationMinutes: 15,
+          },
+        ],
+      },
+      {
+        id: 'react-fundamentals',
+        title: 'React fundamentals',
+        order: 2,
+        lessons: [
+          {
+            id: 'react-components',
+            title: 'Components, props and JSX',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+            durationMinutes: 22,
+          },
+          {
+            id: 'react-state',
+            title: 'State and events with useState',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+            durationMinutes: 24,
+          },
+          {
+            id: 'react-effects',
+            title: 'Side effects with useEffect',
+            order: 3,
+            youtubeUrl: 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+            durationMinutes: 21,
+          },
+        ],
+      },
+      {
+        id: 'react-advanced',
+        title: 'Advanced hooks and patterns',
+        order: 3,
+        lessons: [
+          {
+            id: 'react-context',
+            title: 'Context API for global state',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+            durationMinutes: 18,
+          },
+          {
+            id: 'react-performance',
+            title: 'Memoization and performance',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+            durationMinutes: 19,
+          },
+          {
+            id: 'react-routing',
+            title: 'Routing with React Router',
+            order: 3,
+            youtubeUrl: 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+            durationMinutes: 20,
+          },
+        ],
+      },
+      {
+        id: 'react-project',
+        title: 'Capstone project',
+        order: 4,
+        lessons: [
+          {
+            id: 'react-project-design',
+            title: 'Designing the Learning Studio UI',
+            order: 1,
+            youtubeUrl: 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+            durationMinutes: 16,
+          },
+          {
+            id: 'react-project-implementation',
+            title: 'Building the project step by step',
+            order: 2,
+            youtubeUrl: 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+            durationMinutes: 34,
+          },
+        ],
+      },
+    ],
+  },
   singleLessonCourse({
     id: 'nextjs-full-course',
     title: 'Next.js Full Course',

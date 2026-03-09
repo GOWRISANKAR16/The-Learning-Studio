@@ -3,6 +3,29 @@ import { courses } from '../../data/courses'
 import { useAuthStore } from '../../store/authStore'
 import { useProgressStore } from '../../store/progressStore'
 
+function formatLastActive(updatedAtList: string[]): string {
+  if (updatedAtList.length === 0) return 'Not started'
+  const latest = updatedAtList
+    .map((d) => new Date(d).getTime())
+    .filter((t) => !Number.isNaN(t))
+    .sort((a, b) => b - a)[0]
+  if (!latest) return 'Not started'
+  const diffMs = Date.now() - latest
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDays <= 0) return 'Today'
+  if (diffDays === 1) return '1 day ago'
+  if (diffDays < 7) return `${diffDays} days ago`
+  const diffWeeks = Math.floor(diffDays / 7)
+  if (diffWeeks === 1) return '1 week ago'
+  if (diffWeeks < 4) return `${diffWeeks} weeks ago`
+  const diffMonths = Math.floor(diffDays / 30)
+  if (diffMonths === 1) return '1 month ago'
+  if (diffMonths < 12) return `${diffMonths} months ago`
+  const diffYears = Math.floor(diffDays / 365)
+  if (diffYears === 1) return '1 year ago'
+  return `${diffYears} years ago`
+}
+
 export function ProfilePage() {
   const auth = useAuthStore()
   const progressState = useProgressStore()
@@ -81,49 +104,81 @@ export function ProfilePage() {
 
         <section className="space-y-3 rounded-xl bg-white p-5 shadow-sm">
           <h2 className="text-base font-semibold text-slate-900">
-            Course progress
+            {courseEntries.length > 0
+              ? `${courseEntries.length} enrollment${
+                  courseEntries.length !== 1 ? 's' : ''
+                }`
+              : 'Course progress'}
           </h2>
           {courseEntries.length === 0 && (
             <p className="text-sm text-slate-500">
               You have not started any courses yet.
             </p>
           )}
-          <div className="space-y-3">
-            {courseEntries.map(([courseId, courseProgress]) => {
-              const course = courses.find((c) => c.id === courseId)
-              if (!course) return null
-              const totalLessons = course.sections
-                .flatMap((s) => s.lessons)
-                .length
-              const completedLessons = Object.values(courseProgress).filter(
-                (p) => p.isCompleted,
-              ).length
-              const percent =
-                totalLessons === 0
-                  ? 0
-                  : Math.round((completedLessons / totalLessons) * 100)
+          {courseEntries.length > 0 && (
+            <div className="mt-2 overflow-hidden rounded-lg border border-slate-100 text-sm">
+              <div className="grid grid-cols-[minmax(0,2fr),minmax(0,1fr),minmax(0,1fr)] gap-2 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-500">
+                <span>Course</span>
+                <span>Last active</span>
+                <span className="text-right">Progress</span>
+              </div>
+              <div>
+                {courseEntries.map(([courseId, courseProgress]) => {
+                  const course = courses.find((c) => c.id === courseId)
+                  if (!course) return null
+                  const lessons = course.sections.flatMap((s) => s.lessons)
+                  const totalLessons = lessons.length
+                  const progresses = Object.values(courseProgress)
+                  const completedLessons = progresses.filter(
+                    (p) => p.isCompleted,
+                  ).length
+                  const percent =
+                    totalLessons === 0
+                      ? 0
+                      : Math.round((completedLessons / totalLessons) * 100)
+                  const lastActive = formatLastActive(
+                    progresses.map((p) => p.updatedAt),
+                  )
 
-              return (
-                <div
-                  key={courseId}
-                  className="rounded-lg border border-slate-100 p-3 text-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-slate-900">
-                      {course.title}
-                    </p>
-                    <p className="text-xs text-slate-500">{percent}% complete</p>
-                  </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                  return (
                     <div
-                      className="h-full rounded-full bg-sky-600"
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                      key={courseId}
+                      className="grid grid-cols-[minmax(0,2fr),minmax(0,1fr),minmax(0,1fr)] items-center gap-2 border-t border-slate-100 px-4 py-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-16 overflow-hidden rounded bg-slate-100">
+                          <div
+                            className="h-full w-full bg-cover bg-center"
+                            style={{ backgroundImage: `url(${course.thumbnailUrl})` }}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-slate-900">
+                            {course.title}
+                          </p>
+                          <p className="truncate text-xs text-sky-700">
+                            {course.instructor}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500">{lastActive}</p>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">
+                          {percent}% complete
+                        </p>
+                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-full rounded-full bg-emerald-500"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="grid gap-4 md:grid-cols-2">

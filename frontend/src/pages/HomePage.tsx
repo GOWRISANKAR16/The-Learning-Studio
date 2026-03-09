@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/layout/AppShell'
 import type { Course } from '../data/courses'
 import { CourseCard } from '../components/course/CourseCard'
@@ -13,6 +13,26 @@ export function HomePage() {
   const [allCourses, setAllCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [searchParams] = useSearchParams()
+  const rawQuery = searchParams.get('q') ?? ''
+  const query = rawQuery.trim().toLowerCase()
+
+  const hasQuery = query.length > 0
+
+  const searchResults = hasQuery
+    ? allCourses.filter((course) => {
+        const haystack = [
+          course.title,
+          course.instructor,
+          course.category,
+          course.description,
+        ]
+          .join(' ')
+          .toLowerCase()
+        return haystack.includes(query)
+      })
+    : allCourses
 
   const editorPicks = allCourses.slice(0, 8)
   const recommended = allCourses.slice(8, 16)
@@ -124,7 +144,27 @@ export function HomePage() {
           </button>
         </section>
 
-        {editorPicks.length > 0 && (
+        {hasQuery && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-900">
+                Search results
+              </h2>
+              <p className="text-xs text-slate-500">
+                {searchResults.length}{' '}
+                {searchResults.length === 1 ? 'course' : 'courses'} matching \"{rawQuery.trim()}\"
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-4">
+              {searchResults.map((course) => (
+                <CourseCard key={course.id} course={course} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {!hasQuery && editorPicks.length > 0 && (
           <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-slate-900">
@@ -143,7 +183,7 @@ export function HomePage() {
           </section>
         )}
 
-        {recommended.length > 0 && (
+        {!hasQuery && recommended.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-slate-900">
@@ -162,7 +202,7 @@ export function HomePage() {
           </section>
         )}
 
-        {aiCourses.length > 0 && (
+        {!hasQuery && aiCourses.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-slate-900">

@@ -8,6 +8,7 @@ import { CourseDetailsPage } from './pages/courses/CourseDetailsPage'
 import { LearnPage } from './pages/learn/LearnPage'
 import { ProfilePage } from './pages/profile/ProfilePage'
 import { AssignmentsPage } from './pages/AssignmentsPage'
+import { CartPage } from './pages/CartPage'
 
 export function AppRouter() {
   return (
@@ -34,6 +35,7 @@ export function AppRouter() {
           </AuthGuard>
         }
       />
+      <Route path="/cart" element={<CartPage />} />
       <Route path="/admin" element={<FeatureUnavailablePage />} />
       <Route path="/admin/login" element={<FeatureUnavailablePage />} />
       <Route path="/admin/users" element={<FeatureUnavailablePage />} />

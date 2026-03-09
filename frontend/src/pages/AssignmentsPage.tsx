@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/layout/AppShell'
 import { getCourses } from '../lib/apiClient'
 import type { Course } from '../data/courses'
@@ -8,7 +8,9 @@ import {
   useAssignmentsStore,
   type Assignment,
   type AssignmentStatus,
+  type MCQQuestion,
 } from '../store/assignmentsStore'
+import { submitAssignmentAnswers } from '../lib/apiClient'
 
 function statusLabel(status: AssignmentStatus): string {
   switch (status) {
@@ -37,7 +39,10 @@ export function AssignmentsPage() {
   const assignmentsStore = useAssignmentsStore()
   const [courses, setCourses] = useState<Course[]>([])
   const [activeAssignment, setActiveAssignment] = useState<Assignment | null>(null)
-  const [answer, setAnswer] = useState('')
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({})
+  const [submitting, setSubmitting] = useState(false)
+  const [searchParams] = useSearchParams()
+  const initialCourseId = searchParams.get('courseId') ?? undefined
 
   useEffect(() => {
     let cancelled = false
@@ -62,21 +67,42 @@ export function AssignmentsPage() {
   const userId = auth.user.id
   const allAssignments = assignmentsStore.getAssignmentsForUser(userId)
 
+  const filteredAssignments = useMemo(() => {
+    // Only show assignments when a courseId is provided (navigated from a course)
+    if (!initialCourseId) return []
+    return allAssignments.filter((a) => a.courseId === initialCourseId)
+  }, [allAssignments, initialCourseId])
+
   // Group assignments by course (courses they are taking that have assignments)
-  const byCourse = allAssignments.reduce<Record<string, Assignment[]>>((acc, a) => {
+  const byCourse = filteredAssignments.reduce<Record<string, Assignment[]>>((acc, a) => {
     if (!acc[a.courseId]) acc[a.courseId] = []
     acc[a.courseId].push(a)
     return acc
   }, {})
 
-  const handleSubmit = () => {
-    if (!activeAssignment || !answer.trim()) return
-    assignmentsStore.submitAssignment({
-      assignmentId: activeAssignment.id,
-      userId,
-      content: answer,
-    })
-    setAnswer('')
+  const handleOptionChange = (questionId: string, idx: number) => {
+    setSelectedOptions((prev) => ({ ...prev, [questionId]: idx }))
+  }
+
+  const handleSubmit = async () => {
+    if (!activeAssignment) return
+    const questions = activeAssignment.questions ?? []
+    if (questions.length === 0) return
+    const answers = questions.map((q) => ({
+      questionId: q.id,
+      selectedIndex: selectedOptions[q.id] ?? -1,
+    }))
+
+    setSubmitting(true)
+    try {
+      await submitAssignmentAnswers({
+        assignmentId: activeAssignment.id,
+        userId,
+        answers,
+      })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -92,17 +118,21 @@ export function AssignmentsPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr,400px]">
           {/* Left: assignments grouped by course */}
           <div className="space-y-6">
-            {allAssignments.length === 0 && (
+            {filteredAssignments.length === 0 && (
               <section className="rounded-xl bg-white p-6 shadow-sm">
                 <p className="text-sm text-slate-500">
-                  No assignments have been assigned yet. Enroll in a course to see assignments here.
+                  {initialCourseId
+                    ? 'There are no assignments configured yet for this course.'
+                    : 'No assignments to show yet. Open a course and use the Assignments tab or button to view its quizzes here.'}
                 </p>
-                <Link
-                  to="/"
-                  className="mt-3 inline-block text-sm font-medium text-sky-700 hover:text-sky-900"
-                >
-                  Browse courses →
-                </Link>
+                {!initialCourseId && (
+                  <Link
+                    to="/"
+                    className="mt-3 inline-block text-sm font-medium text-sky-700 hover:text-sky-900"
+                  >
+                    Browse courses →
+                  </Link>
+                )}
               </section>
             )}
 
@@ -146,7 +176,6 @@ export function AssignmentsPage() {
                             type="button"
                             onClick={() => {
                               setActiveAssignment(assignment)
-                              setAnswer(submission?.content ?? '')
                             }}
                             className={`flex w-full items-start justify-between gap-3 text-left rounded-lg p-3 transition-colors ${
                               isActive
@@ -180,12 +209,14 @@ export function AssignmentsPage() {
                           <div className="mt-3 ml-3 pl-3 border-l-2 border-slate-200 space-y-2">
                             {assignment.questions && assignment.questions.length > 0 ? (
                               <ul className="list-none space-y-1.5 text-sm text-slate-700">
-                                {assignment.questions.map((q, idx) => (
-                                  <li key={idx} className="flex gap-2">
-                                    <span className="font-medium text-slate-500 shrink-0">
-                                      {idx + 1}.
+                                {assignment.questions.map((q: MCQQuestion, idx: number) => (
+                                  <li key={q.id} className="flex flex-col gap-1.5">
+                                    <span className="flex items-start gap-2">
+                                      <span className="font-medium text-slate-500 shrink-0">
+                                        {idx + 1}.
+                                      </span>
+                                      <span>{q.text}</span>
                                     </span>
-                                    <span>{q}</span>
                                   </li>
                                 ))}
                               </ul>
@@ -204,10 +235,10 @@ export function AssignmentsPage() {
             })}
           </div>
 
-          {/* Right: submission panel */}
+          {/* Right: quiz panel */}
           <aside className="lg:sticky lg:top-24 self-start rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-base font-semibold text-slate-900">
-              Submit your work
+              Course quiz
             </h2>
             {!activeAssignment && (
               <p className="mt-3 text-sm text-slate-500">
@@ -225,33 +256,105 @@ export function AssignmentsPage() {
                   </p>
                 </div>
                 {activeAssignment.questions && activeAssignment.questions.length > 0 && (
-                  <div className="rounded-lg bg-slate-50 p-3 text-sm">
-                    <p className="font-medium text-slate-700 mb-2">Questions:</p>
-                    <ol className="list-decimal list-inside space-y-1.5 text-slate-600">
-                      {activeAssignment.questions.map((q, idx) => (
-                        <li key={idx}>{q}</li>
-                      ))}
-                    </ol>
+                  <div className="space-y-4">
+                    {activeAssignment.questions.map((q) => {
+                      const selected = selectedOptions[q.id]
+                      const submission = assignmentsStore.getSubmission(
+                        activeAssignment.id,
+                        userId,
+                      )
+                      const isGraded = submission?.status === 'graded'
+                      const correctSelected =
+                        isGraded &&
+                        submission.answers.find((a) => a.questionId === q.id)
+                          ?.selectedIndex === q.correctIndex
+
+                      return (
+                        <div
+                          key={q.id}
+                          className="rounded-lg bg-slate-50 p-3 text-sm"
+                        >
+                          <p className="font-medium text-slate-800">
+                            {q.text}
+                          </p>
+                          <div className="mt-2 space-y-1.5">
+                            {q.options.map((opt, idx) => (
+                              <label
+                                key={idx}
+                                className="flex cursor-pointer items-center gap-2 text-xs text-slate-700"
+                              >
+                                <input
+                                  type="radio"
+                                  name={q.id}
+                                  className="h-3 w-3 border-slate-300 text-sky-600 focus:ring-sky-600"
+                                  checked={selected === idx}
+                                  onChange={() =>
+                                    handleOptionChange(q.id, idx)
+                                  }
+                                />
+                                <span>{opt}</span>
+                              </label>
+                            ))}
+                          </div>
+                          {isGraded && (
+                            <p
+                              className={`mt-2 text-xs font-semibold ${
+                                correctSelected
+                                  ? 'text-emerald-700'
+                                  : 'text-rose-700'
+                              }`}
+                            >
+                              {correctSelected
+                                ? 'Correct'
+                                : `Correct answer: ${
+                                    q.options[q.correctIndex]
+                                  }`}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
-                {(!activeAssignment.questions || activeAssignment.questions.length === 0) && (
+
+                {(!activeAssignment.questions ||
+                  activeAssignment.questions.length === 0) && (
                   <p className="text-sm text-slate-600">
                     {activeAssignment.description}
                   </p>
                 )}
-                <textarea
-                  className="h-32 w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-600 focus:border-sky-600"
-                  placeholder="Type your answers or paste a link to your work…"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                />
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="w-full rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800"
+                  disabled={submitting}
+                  className="w-full rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-60"
                 >
-                  Submit assignment
+                  {submitting ? 'Submitting…' : 'Submit answers'}
                 </button>
+                {activeAssignment && (
+                  <div className="text-xs text-slate-600">
+                    {(() => {
+                      const submission = assignmentsStore.getSubmission(
+                        activeAssignment.id,
+                        userId,
+                      )
+                      if (!submission) return null
+                      return (
+                        <p className="mt-1">
+                          Score:{' '}
+                          <span className="font-semibold text-slate-800">
+                            {submission.score}/{submission.maxScore}
+                          </span>
+                          {submission.score === submission.maxScore && (
+                            <span className="ml-1 text-emerald-700">
+                              · Full marks!
+                            </span>
+                          )}
+                        </p>
+                      )
+                    })()}
+                  </div>
+                )}
               </div>
             )}
           </aside>
