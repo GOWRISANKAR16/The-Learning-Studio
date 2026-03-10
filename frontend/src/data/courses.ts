@@ -867,6 +867,7 @@ export const courses: Course[] = [
     difficulty: 'Intermediate',
     instructor: 'AI Engineer',
     youtubeUrl: 'https://www.youtube.com/watch?v=HQaVFUV2Ag',
+    thumbnailUrl: 'https://img.youtube.com/vi/bZzyPscbtI8/maxresdefault.jpg',
   }),
 
   // DevOps / Cloud

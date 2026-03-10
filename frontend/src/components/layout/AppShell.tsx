@@ -234,34 +234,34 @@ export function AppShell({ children }: AppShellProps) {
             <div>
               <h3 className="text-sm font-semibold text-white">About</h3>
               <ul className="mt-3 space-y-2 text-sm">
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">About us</Link></li>
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Careers</Link></li>
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Contact us</Link></li>
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Blog</Link></li>
+                <li><Link to="/about" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">About us</Link></li>
+                <li><Link to="/careers" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Careers</Link></li>
+                <li><Link to="/contact" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Contact us</Link></li>
+                <li><Link to="/blog" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Blog</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="text-sm font-semibold text-white">Discover</h3>
               <ul className="mt-3 space-y-2 text-sm">
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Get the app</Link></li>
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Teach on Learning Studio</Link></li>
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Plans and pricing</Link></li>
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Help and support</Link></li>
+                <li><Link to="/get-the-app" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Get the app</Link></li>
+                <li><Link to="/teach" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Teach on Learning Studio</Link></li>
+                <li><Link to="/plans-pricing" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Plans and pricing</Link></li>
+                <li><Link to="/help-support" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Help and support</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="text-sm font-semibold text-white">Learning Studio for Business</h3>
               <ul className="mt-3 space-y-2 text-sm">
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Learning Studio Business</Link></li>
+                <li><Link to="/business" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Learning Studio Business</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="text-sm font-semibold text-white">Legal &amp; accessibility</h3>
               <ul className="mt-3 space-y-2 text-sm">
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Accessibility statement</Link></li>
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Privacy policy</Link></li>
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Sitemap</Link></li>
-                <li><Link to="/" className="hover:text-sky-400 underline-offset-2 hover:underline">Terms</Link></li>
+                <li><Link to="/accessibility" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Accessibility statement</Link></li>
+                <li><Link to="/privacy" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Privacy policy</Link></li>
+                <li><Link to="/sitemap" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Sitemap</Link></li>
+                <li><Link to="/terms" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">Terms</Link></li>
               </ul>
             </div>
           </div>
@@ -276,10 +276,10 @@ export function AppShell({ children }: AppShellProps) {
               <span className="text-sm text-slate-400">© {new Date().getFullYear()} The Learning Studio</span>
             </div>
             <div className="flex items-center gap-6 text-sm">
-              <button type="button" className="hover:text-sky-400 underline-offset-2 hover:underline">
+              <button type="button" className="hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">
                 Cookie settings
               </button>
-              <button type="button" className="flex items-center gap-1.5 hover:text-sky-400 underline-offset-2 hover:underline">
+              <button type="button" className="flex items-center gap-1.5 hover:text-sky-400 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden>
                   <circle cx="12" cy="12" r="10" />
                   <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
